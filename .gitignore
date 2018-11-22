@@ -6,6 +6,9 @@
 *.csv
 *.json
 *.pt
+*.txt
+*.lst
+*.msgpack
 Data
 Dataset
 *dir*
