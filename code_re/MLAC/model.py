@@ -2,10 +2,11 @@
 import logging
 import random
 
-from code.MLAC.network import MultiLevelAttentionCNN, novel_distance_loss
+import numpy as np
 import torch
 import torch.nn.functional as F
 
+from code_re.MLAC.network import MultiLevelAttentionCNN
 
 logger = logging.getLogger(__name__)
 
@@ -62,18 +63,29 @@ class REModel(object):
         self.network.train()
 
         # transfer to gpu
-        inputs = [e.to(self.device) for e in ex[:-1]]
-        target_rel = ex[-1].to(self.device)
+        inputs = [e.to(self.device) for e in ex[:5]]
+        target_y = ex[-1].to(self.device)
 
         # run forward
-        wo, rel_weight = self.network(*inputs)
+        all_distance, wo_norm, rel_weight, self.pred = self.network(*inputs)
 
-        # compute loss and accuracies
-        loss = novel_distance_loss(wo, rel_weight, target_rel, self.opt["num_relations"])
+        # compute loss
+        mask = one_hot(target_y, self.opt["num_relations"], 1000, 0)  # [b, nr]
+        mask_y = torch.add(all_distance, mask)
+        _, neg_y = torch.min(mask_y, dim=1)  # [b,]
+
+        neg_y = torch.mm(one_hot(neg_y, self.opt["num_relations"],), rel_weight)  # (bz, nr)*(nr, dc) => (bz, dc)
+        pos_y = torch.mm(one_hot(target_y, self.opt["num_relations"],), rel_weight)
+
+        neg_distance = torch.norm(wo_norm - F.normalize(neg_y), p=2, dim=1)
+        pos_distance = torch.norm(wo_norm - F.normalize(pos_y), p=2, dim=1)
+
+        margin = 1
+        self.loss = torch.mean(pos_distance + margin - neg_distance)
 
         # clear gradients and run backward
         self.optimizer.zero_grad()
-        loss.backward()
+        self.loss.backward()
 
         # clip gradients
         torch.nn.utils.clip_grad_norm_(self.network.parameters(), self.opt["grad_clipping"])
@@ -87,20 +99,13 @@ class REModel(object):
         self.network.eval()
 
         # transfer to gpu
-        inputs = [e.to(self.device) for e in ex[:-1]]
+        inputs = [e.to(self.device) for e in ex[:5]]
 
         # run forward
         with torch.no_grad():
-            wo, rel_weight = self.network(*inputs)
-            wo_norm = F.normalize(wo)  # [b, dc] Wo/||Wo||
-            b, dc = wo_norm.size()
-            wo_norm_tile = wo_norm.unsqueeze(1).repeat(1, self.opt["num_relations"], 1)  # [b, nr, dc]
-            batched_rel_w = F.normalize(rel_weight).unsqueeze(0).repeat(b, 1, 1)  # [b, nr, dc]
-            all_distance = torch.norm(wo_norm_tile - batched_rel_w, p=2, dim=2)  # [b, nr]
+            pred = self.network(*inputs)
 
-            predict_prob, predict = torch.min(all_distance, dim=1)
-
-        return predict
+        return pred
 
     def save(self, epoch, scores, filename):
         precision, recall, f1, best_f1 = scores
@@ -130,4 +135,20 @@ class REModel(object):
             logger.warning('[ WARN: Saving failed... continuing anyway. ]')
 
 
+def one_hot(indices, depth, on_value=1, off_value=0):
+    if len(indices.shape) == 2:
+        encoding = np.zeros([indices.shape[0], indices.shape[1], depth], dtype=int)
+        added = encoding + off_value
+        for i in range(indices.shape[0]):
+            for j in range(indices.shape[1]):
+                added[i, j, indices[i, j]] = on_value
 
+        return torch.FloatTensor(added)
+
+    if len(indices.shape) == 1:
+        encoding = np.zeros([indices.shape[0], depth], dtype=int)  # [b, nr]
+        added = encoding + off_value
+        for i in range(indices.shape[0]):
+            added[i, indices[i]] = on_value
+
+        return torch.FloatTensor(added)

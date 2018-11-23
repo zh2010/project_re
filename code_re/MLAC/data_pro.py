@@ -3,8 +3,8 @@ import numpy as np
 import logging
 from collections import Counter
 
-from code.MLAC.train import setup
-
+from code_re.MLAC.train import setup
+from code_re.MLAC.utils import pos
 
 logger = logging.getLogger(__name__)
 
@@ -68,18 +68,6 @@ def load_embedding(emb_file, emb_vocab, word_dict):
     return embeddings.astype(np.float32)
 
 
-def pos(x):
-    """
-    map the relative distance between [0, 123?)
-    """
-    if x < -60:
-        return 0
-    if -60 <= x <= 60:
-        return x + 61
-    if x > 60:
-        return 122
-
-
 def vectorize(data, word_dict):
     sentences, relations, e1_pos, e2_pos = data
 
@@ -95,7 +83,7 @@ def vectorize(data, word_dict):
     logger.debug('num_data: {}'.format(num_data))
 
     for idx, (sent, pos1, pos2) in enumerate(zip(sentences, e1_pos, e2_pos)):
-        vec = [word_dict[w] if w in word_dict else 0 for w in sent]
+        vec = [word_dict[w] if w in word_dict else 1 for w in sent]
         sents_vec.append(vec)
 
         # last word of e1 and e2
@@ -107,7 +95,7 @@ def vectorize(data, word_dict):
         dist1.append([pos(p1[1] - idx) for idx, _ in enumerate(sent)])
         dist2.append([pos(p2[1] - idx) for idx, _ in enumerate(sent)])
 
-    return sents_vec, relations, e1_vec, e2_vec, dist1, dist2
+    return sents_vec, relations, e1_vec, e2_vec, dist1, dist2, e1_pos, e2_pos
 
 
 def prepare():
@@ -116,15 +104,11 @@ def prepare():
     dev_data = load_data("test.txt")
     word_dict = build_dict(train_data[0] + dev_data[0])
 
-    x, y, e1, e2, dist1, dist2 = vectorize(train_data, word_dict, args.max_len)
-    y = np.array(y).astype(np.int64)
-    np_cat = np.concatenate(
-        (x, np.array(e1).reshape(-1, 1), np.array(e2).reshape(-1, 1), np.array(dist1), np.array(dist2)), 1)
+    x, y, e1, e2, dist1, dist2, e1_pos, e2_pos = vectorize(train_data, word_dict)
+    train = list(zip(x, e1, e2, dist1, dist2, e1_pos, e2_pos, y))
 
-    e_x, e_y, e_e1, e_e2, e_dist1, e_dist2 = vectorize(dev_data, word_dict, args.max_len)
-    e_y = np.array(e_y).astype(np.int64)
-    eval_cat = np.concatenate(
-        (e_x, np.array(e_e1).reshape(-1, 1), np.array(e_e2).reshape(-1, 1), np.array(e_dist1), np.array(e_dist2)), 1)
+    e_x, e_y, e_e1, e_e2, e_dist1, e_dist2, e_e1_pos, e_e2_pos = vectorize(dev_data, word_dict)
+    valid = list(zip(e_x, e_e1, e_e2, e_dist1, e_dist2, e_e1_pos, e_e2_pos, e_y))
 
     embed_file = 'embeddings.txt'
     vac_file = 'words.lst'
@@ -136,10 +120,8 @@ def prepare():
     }
 
     result = {
-        "train_x": np_cat.tolist(),
-        "train_y": y.tolist(),
-        "eval_x": eval_cat.tolist(),
-        "eval_y": e_y.tolist(),
+        "train": train,
+        "valid": valid
     }
 
     with open("meta.msgpack", "wb") as f:

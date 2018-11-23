@@ -2,7 +2,6 @@
 import torch
 from torch import nn
 from torch.nn import functional as F
-import numpy as np
 
 
 class MultiLevelAttentionCNN(nn.Module):
@@ -29,10 +28,10 @@ class MultiLevelAttentionCNN(nn.Module):
 
         self.np = opt["num_positions"]
         self.dist1_embedding = nn.Embedding(self.np, self.dp)
-        self.dist1_embedding = nn.Embedding(self.np, self.dp)
+        self.dist2_embedding = nn.Embedding(self.np, self.dp)
 
         self.p = (self.k - 1) // 2
-        self.pad = nn.ConstantPad1d(self.p, 0)
+        self.pad = nn.ConstantPad2d((0, 0, self.p, self.p), 0)
 
         self.We1 = nn.Parameter(torch.randn(self.dw, self.dw))
         self.We2 = nn.Parameter(torch.randn(self.dw, self.dw))
@@ -59,30 +58,30 @@ class MultiLevelAttentionCNN(nn.Module):
         # 2. window concat
         b, sl, wl = x_concat.size()
         px = self.pad(x_concat.unsqueeze(1))  # [b, 1, sl+p*2, wl]
-        px = px.squeeze(1)  # [b, sl+p*2, wl]
+        px = px.view(b, sl+self.p*2, wl)  # [b, sl+p*2, wl]
 
-        t_px = torch.index_select(px, dim=1, index=torch.Tensor(range(sl)))
-        m_px = torch.index_select(px, dim=1, index=torch.Tensor(range(1, sl+1)))
-        b_px = torch.index_select(px, dim=1, index=torch.Tensor(range(2, sl+2)))
+        t_px = torch.index_select(px, dim=1, index=torch.LongTensor(range(sl)))
+        m_px = torch.index_select(px, dim=1, index=torch.LongTensor(range(1, sl+1)))
+        b_px = torch.index_select(px, dim=1, index=torch.LongTensor(range(2, sl+2)))
 
         window_cat = torch.cat([t_px, m_px, b_px], dim=2)  # [b,sl,k*wl]
         window_cat = F.dropout(window_cat, p=self.dropout, training=self.training)
 
         # 3. contextual relevance matrices
-        e1_embed = self.word_embedding(e1)  # [b, 1, dw]
-        e2_embed = self.word_embedding(e2)
+        e1_embed = self.word_embedding(e1).unsqueeze(1)  # [b, 1, dw]
+        e2_embed = self.word_embedding(e2).unsqueeze(1)
         W1 = self.We1.view(1, self.dw, self.dw).repeat(b, 1, 1)  # [b,dw,dw]
         W2 = self.We2.view(1, self.dw, self.dw).repeat(b, 1, 1)
         W1x = torch.bmm(x_embed, W1)  # [b, sl, dw]
         W2x = torch.bmm(x_embed, W2)
-        A1 = torch.bmm(W1x, e1_embed.transpose(1, 2))  # [b, sl, dw] * [b, dw, 1] = [b, sl, 1]
-        A2 = torch.bmm(W2x, e2_embed.transpose(1, 2))
+        A1 = torch.bmm(W1x, e1_embed.transpose(1, 2)).squeeze(2)  # [b, sl, dw] * [b, dw, 1] = [b, sl, 1]
+        A2 = torch.bmm(W2x, e2_embed.transpose(1, 2)).squeeze(2)
 
         # 3.1 input attention composition
         alpha1 = F.softmax(A1, dim=1)
         alpha2 = F.softmax(A2, dim=1)
         alpha = torch.div(torch.add(alpha1, alpha2), 2)  # [b, sl, 1]
-        alpha = alpha.repeat(1, 1, self.kd)  # [b, sl, k*wl] wl:word_embed_size+dist_embed_size*2
+        alpha = alpha.unsqueeze(2).repeat(1, 1, self.kd)  # [b, sl, k*wl] wl:word_embed_size+dist_embed_size*2
 
         R = torch.mul(window_cat, alpha)  # [b, sl, k*wl]
 
@@ -102,29 +101,25 @@ class MultiLevelAttentionCNN(nn.Module):
 
         AP = F.softmax(G, dim=2)
         wo = torch.bmm(R_star, AP)  # [b, dc, dc]
-        wo = self.max_pool(wo.unsqueeze(1))  # [b, dc, 1]
-        wo = wo.unsqueeze(-1)  # [b, dc]
+        wo = self.max_pool(wo.unsqueeze(1))  # [b, 1, dc, 1]
+        wo = wo.squeeze(-1).squeeze(1)  # [b, dc]
 
-        return wo, rel_weight
+        wo_norm = F.normalize(wo)  # [b, dc] Wo/||Wo||
+        b, dc = wo_norm.size()
+        wo_norm_tile = wo_norm.unsqueeze(1).repeat(1, self.opt["num_relations"], 1)  # [b, nr, dc]
+        batched_rel_w = F.normalize(rel_weight).unsqueeze(0).repeat(b, 1, 1)  # [b, nr, dc]
+        all_distance = torch.norm(wo_norm_tile - batched_rel_w, p=2, dim=2)  # [b, nr]
+
+        predict_prob, predict = torch.min(all_distance, dim=1)
+
+        if self.training:
+            return all_distance, wo_norm, rel_weight, predict
+
+        else:
+            return predict
 
 
-def one_hot(indices, depth, on_value=1, off_value=0):
-    if len(indices.shape) == 2:
-        encoding = np.zeros([indices.shape[0], indices.shape[1], depth], dtype=int)
-        added = encoding + off_value
-        for i in range(indices.shape[0]):
-            for j in range(indices.shape[1]):
-                added[i, j, indices[i, j]] = on_value
 
-        return torch.FloatTensor(added)
-
-    if len(indices.shape) == 1:
-        encoding = np.zeros([indices.shape[0], depth], dtype=int)  # [b, nr]
-        added = encoding + off_value
-        for i in range(indices.shape[0]):
-            added[i, indices[i]] = on_value
-
-        return torch.FloatTensor(added)
 
 
 def novel_distance_loss(wo, rel_weight, in_y, nr, margin=1):

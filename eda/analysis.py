@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 
-from code.config import train_data_path
+from code_re.config import train_data_path
 
 
 def explore_data():
@@ -12,3 +12,5 @@ def explore_data():
                 pass
 
 
+if __name__ == '__main__':
+    explore_data()
