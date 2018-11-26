@@ -71,14 +71,14 @@ class REModel(object):
 
         # compute loss
         mask = one_hot(target_y, self.opt["num_relations"], 1000, 0)  # [b, nr]
-        mask_y = torch.add(all_distance, mask)
+        mask_y = torch.add(all_distance, mask.cuda())
         _, neg_y = torch.min(mask_y, dim=1)  # [b,]
 
-        neg_y = torch.mm(one_hot(neg_y, self.opt["num_relations"],), rel_weight)  # (bz, nr)*(nr, dc) => (bz, dc)
-        pos_y = torch.mm(one_hot(target_y, self.opt["num_relations"],), rel_weight)
+        neg_y = torch.mm(one_hot(neg_y, self.opt["num_relations"],), rel_weight.cpu())  # (bz, nr)*(nr, dc) => (bz, dc)
+        pos_y = torch.mm(one_hot(target_y, self.opt["num_relations"],), rel_weight.cpu())
 
-        neg_distance = torch.norm(wo_norm - F.normalize(neg_y), p=2, dim=1)
-        pos_distance = torch.norm(wo_norm - F.normalize(pos_y), p=2, dim=1)
+        neg_distance = torch.norm(wo_norm - F.normalize(neg_y).cuda(), p=2, dim=1)
+        pos_distance = torch.norm(wo_norm - F.normalize(pos_y).cuda(), p=2, dim=1)
 
         margin = 1
         self.loss = torch.mean(pos_distance + margin - neg_distance)

@@ -60,9 +60,9 @@ class MultiLevelAttentionCNN(nn.Module):
         px = self.pad(x_concat.unsqueeze(1))  # [b, 1, sl+p*2, wl]
         px = px.view(b, sl+self.p*2, wl)  # [b, sl+p*2, wl]
 
-        t_px = torch.index_select(px, dim=1, index=torch.LongTensor(range(sl)))
-        m_px = torch.index_select(px, dim=1, index=torch.LongTensor(range(1, sl+1)))
-        b_px = torch.index_select(px, dim=1, index=torch.LongTensor(range(2, sl+2)))
+        t_px = torch.index_select(px, dim=1, index=torch.LongTensor(range(sl)).cuda())
+        m_px = torch.index_select(px, dim=1, index=torch.LongTensor(range(1, sl+1)).cuda())
+        b_px = torch.index_select(px, dim=1, index=torch.LongTensor(range(2, sl+2)).cuda())
 
         window_cat = torch.cat([t_px, m_px, b_px], dim=2)  # [b,sl,k*wl]
         window_cat = F.dropout(window_cat, p=self.dropout, training=self.training)

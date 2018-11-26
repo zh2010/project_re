@@ -92,8 +92,8 @@ def main():
                     str((datetime.now() - start) / (i + 1) * (len(batches) - i - 1)).split('.')[0]
                 ))
                 true_y = batch[-1]
-                log.info(classification_report(true_y, model.pred))
-                p, r, f1, s = precision_recall_fscore_support(true_y, model.pred, average='micro')
+                log.info(classification_report(true_y, model.pred.cpu()))
+                p, r, f1, s = precision_recall_fscore_support(true_y, model.pred.cpu(), average='micro')
         log.info('\n')
 
         # save
@@ -107,7 +107,7 @@ def main():
             output = model.predict(batch)
             true_y = batch[-1]
             true_y_list.extend(true_y)
-            pred_y_list.extend(output)
+            pred_y_list.extend(output.cpu())
 
         log.info(classification_report(true_y_list, pred_y_list))
 
