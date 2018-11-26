@@ -60,9 +60,9 @@ class MultiLevelAttentionCNN(nn.Module):
         px = self.pad(x_concat.unsqueeze(1))  # [b, 1, sl+p*2, wl]
         px = px.view(b, sl+self.p*2, wl)  # [b, sl+p*2, wl]
 
-        t_px = torch.index_select(px, dim=1, index=torch.LongTensor(range(sl)).cuda())
-        m_px = torch.index_select(px, dim=1, index=torch.LongTensor(range(1, sl+1)).cuda())
-        b_px = torch.index_select(px, dim=1, index=torch.LongTensor(range(2, sl+2)).cuda())
+        t_px = torch.index_select(px, dim=1, index=torch.arange(sl))
+        m_px = torch.index_select(px, dim=1, index=torch.arange(1, sl+1))
+        b_px = torch.index_select(px, dim=1, index=torch.arange(2, sl+2))
 
         window_cat = torch.cat([t_px, m_px, b_px], dim=2)  # [b,sl,k*wl]
         window_cat = F.dropout(window_cat, p=self.dropout, training=self.training)
@@ -107,8 +107,8 @@ class MultiLevelAttentionCNN(nn.Module):
         wo_norm = F.normalize(wo)  # [b, dc] Wo/||Wo||
         b, dc = wo_norm.size()
         wo_norm_tile = wo_norm.unsqueeze(1).repeat(1, self.opt["num_relations"], 1)  # [b, nr, dc]
-        batched_rel_w = F.normalize(rel_weight).unsqueeze(0).repeat(b, 1, 1)  # [b, nr, dc]
-        all_distance = torch.norm(wo_norm_tile - batched_rel_w, p=2, dim=2)  # [b, nr]
+        b_rel_weight_norm = F.normalize(rel_weight).unsqueeze(0).repeat(b, 1, 1)  # [b, nr, dc]
+        all_distance = torch.norm(wo_norm_tile - b_rel_weight_norm, p=2, dim=2)  # [b, nr]
 
         predict_prob, predict = torch.min(all_distance, dim=1)
 
@@ -117,58 +117,6 @@ class MultiLevelAttentionCNN(nn.Module):
 
         else:
             return predict
-
-
-
-
-
-def novel_distance_loss(wo, rel_weight, in_y, nr, margin=1):
-    """
-
-    :param margin: 
-    :param nr: 
-    :param wo: Wo, [b, dc]
-    :param rel_weight: WL, [nr, dc]
-    :param in_y: True relation class, [b,]
-    :return:
-    """
-    wo_norm = F.normalize(wo)  # [b, dc] Wo/||Wo||
-    b, dc = wo_norm.size()
-    wo_norm_tile = wo_norm.unsqueeze(1).repeat(1, nr, 1)  # [b, nr, dc]
-    batched_rel_w = F.normalize(rel_weight).unsqueeze(0).repeat(b, 1, 1)  # [b, nr, dc]
-    all_distance = torch.norm(wo_norm_tile - batched_rel_w, p=2, dim=2)  # [b, nr]
-
-    mask = one_hot(in_y, nr, 1000, 0)  # [b, nr]
-    mask_y = torch.add(all_distance, mask)
-    _, neg_y = torch.min(mask_y, dim=1)  # [b,]
-
-    neg_y = torch.mm(one_hot(neg_y, nr), rel_weight)  # (bz, nr)*(nr, dc) => (bz, dc)
-    pos_y = torch.mm(one_hot(in_y, nr), rel_weight)
-
-    neg_distance = torch.norm(wo_norm - F.normalize(neg_y), p=2, dim=1)
-    pos_distance = torch.norm(wo_norm - F.normalize(pos_y), p=2, dim=1)
-
-    loss = torch.mean(pos_distance + margin - neg_distance)
-
-    return loss
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

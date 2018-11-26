@@ -87,13 +87,14 @@ def main():
 
             # evaluate batch
             if i % args.log_per_updates == 0:
-                log.info('> epoch [{0:2}] updates[{1:6}] train loss[{2:5f}] remaining[{3}]'.format(
-                    epoch, model.updates, model.loss,
+                true_y = batch[-1]
+                pred_y = model.pred.cpu()
+                # log.info(classification_report(true_y, pred_y))
+                p, r, f1, s = precision_recall_fscore_support(true_y, pred_y, average='micro')
+                log.info('> epoch [{0:2}] updates[{1:6}] train loss[{2:5f}] f1 [{3:4f}] remaining[{4}]'.format(
+                    epoch, model.updates, model.loss, f1,
                     str((datetime.now() - start) / (i + 1) * (len(batches) - i - 1)).split('.')[0]
                 ))
-                true_y = batch[-1]
-                log.info(classification_report(true_y, model.pred.cpu()))
-                p, r, f1, s = precision_recall_fscore_support(true_y, model.pred.cpu(), average='micro')
         log.info('\n')
 
         # save
@@ -125,26 +126,26 @@ def setup():
     parser = argparse.ArgumentParser(description="Train a Relation extraction model")
 
     # system
-    parser.add_argument('--log_per_updates', type=int, default=300)
+    parser.add_argument('--log_per_updates', type=int, default=1000)
     parser.add_argument('--model_dir', default="model_dir")
     parser.add_argument('--save_last_only', action='store_true')
     parser.add_argument('--seed', type=int, default=1013)
     parser.add_argument('--cuda', type=str2bool, nargs='?', default=torch.cuda.is_available(), const=True)
 
     # training
-    parser.add_argument('--epochs', type=int, default=100)
+    parser.add_argument('--epochs', type=int, default=100000)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--resume', default='best_model.pt')
     parser.add_argument('--resume_options', action='store_true')
-    parser.add_argument('--reduce_lr', type=float, default=0)
+    parser.add_argument('--reduce_lr', type=float, default=0.001)
     parser.add_argument('--optimizer', default='sgd',
                         help='supported optimizer: adamax, sgd')
     parser.add_argument('--grad_clipping', type=float, default=5)
-    parser.add_argument('--weight_decay', type=float, default=0,
+    parser.add_argument('--weight_decay', type=float, default=0.05,
                         help='used for adamax and sgd')
-    parser.add_argument('--learning_rate', type=float, default=0.001,
+    parser.add_argument('--learning_rate', type=float, default=0.03,
                         help='used for sgd')
-    parser.add_argument('--momentum', type=float, default=0,
+    parser.add_argument('--momentum', type=float, default=0.05,
                         help='used for sgd')
     parser.add_argument('--fix_embedding', action='store_true')
 
