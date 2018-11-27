@@ -51,7 +51,7 @@ def main():
     if args.resume:
         log.info('[loading previous model ...]')
         map_location = 'cpu' if torch.cuda.is_available() else None
-        checkpoint = torch.load(os.path.join(args.model_dir, 'checkpoint.pt'), map_location=map_location)
+        checkpoint = torch.load(os.path.join(args.model_dir, 'best_model.pt'), map_location=map_location)
         if args.resume_options:
             opt = checkpoint['config']
         state_dict = checkpoint['state_dict']
@@ -137,7 +137,7 @@ def setup():
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--resume', default='best_model.pt')
     parser.add_argument('--resume_options', action='store_true')
-    parser.add_argument('--reduce_lr', type=float, default=0.001)
+    parser.add_argument('--reduce_lr', type=float, default=0)
     parser.add_argument('--optimizer', default='sgd',
                         help='supported optimizer: adamax, sgd')
     parser.add_argument('--grad_clipping', type=float, default=5)

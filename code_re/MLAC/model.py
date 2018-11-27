@@ -70,12 +70,14 @@ class REModel(object):
         all_distance, wo_norm, rel_weight, self.pred = self.network(*inputs)
 
         # compute loss
-        mask = one_hot(target_y, self.opt["num_relations"], 1000, 0)  # [b, nr]
+        mask = self.one_hot(target_y, self.opt["num_relations"], 1000, 0)  # [b, nr]
         mask_y = torch.add(all_distance, mask)
         _, neg_y_idx = torch.min(mask_y, dim=1)  # [b,] 取到第二小距离的idx
-        neg_y = torch.mm(one_hot(neg_y_idx, self.opt["num_relations"],), rel_weight)  # (bz, nr)*(nr, dc) => (bz, dc)
+        neg_y = self.one_hot(neg_y_idx, self.opt["num_relations"])
+        neg_y = torch.mm(neg_y, rel_weight)  # (bz, nr)*(nr, dc) => (bz, dc)
 
-        pos_y = torch.mm(one_hot(target_y, self.opt["num_relations"],), rel_weight)
+        pos_y = self.one_hot(target_y, self.opt["num_relations"])
+        pos_y = torch.mm(pos_y, rel_weight)
 
         neg_distance = torch.norm(wo_norm - F.normalize(neg_y), p=2, dim=1)
         pos_distance = torch.norm(wo_norm - F.normalize(pos_y), p=2, dim=1)
@@ -134,21 +136,11 @@ class REModel(object):
         except BaseException:
             logger.warning('[ WARN: Saving failed... continuing anyway. ]')
 
+    def one_hot(self, indices, depth, on_value=1, off_value=0):
+        if len(indices.shape) == 1:
+            encoding = torch.Tensor(indices.shape[0], depth).fill_(0)  # [b, nr]
+            added = encoding + off_value
+            for i in range(indices.shape[0]):
+                added[i, indices[i]] = on_value
 
-def one_hot(indices, depth, on_value=1, off_value=0):
-    # if len(indices.shape) == 2:
-    #     encoding = np.zeros([indices.shape[0], indices.shape[1], depth], dtype=int)
-    #     added = encoding + off_value
-    #     for i in range(indices.shape[0]):
-    #         for j in range(indices.shape[1]):
-    #             added[i, j, indices[i, j]] = on_value
-    #
-    #     return torch.FloatTensor(added)
-
-    if len(indices.shape) == 1:
-        encoding = torch.Tensor(indices.shape[0], depth).fill_(0)  # [b, nr]
-        added = encoding + off_value
-        for i in range(indices.shape[0]):
-            added[i, indices[i]] = on_value
-
-        return added
+            return added.to(self.device)
