@@ -33,6 +33,7 @@ def split_train_dev():
     total_list = np.random.permutation(total_list)
     r_name_list, sent_cut_list, fns, rids = zip(*total_list)
     X_train, X_test, y_train, y_test = train_test_split(list(zip(sent_cut_list, fns, rids)), r_name_list,
+                                                        train_size=0.9,
                                                         random_state=1234, stratify=r_name_list)
 
     with open(os.path.join(Data_PATH, 'train.txt'), 'w') as f:
@@ -148,4 +149,5 @@ def refine_data_and_labels():
 
 
 if __name__ == '__main__':
+    split_train_dev()
     refine_data_and_labels()

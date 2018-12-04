@@ -16,6 +16,9 @@ from code_re.cnn.configure import FLAGS
 from sklearn.metrics import f1_score
 import warnings
 import sklearn.exceptions
+
+from code_re.cnn.utils import class2label
+
 warnings.filterwarnings("ignore", category=sklearn.exceptions.UndefinedMetricWarning)
 np.random.seed(1234)
 random.seed(1234)
@@ -203,7 +206,7 @@ def train():
                     dev_summary_writer.add_summary(summaries, step)
 
                     time_str = datetime.datetime.now().isoformat()
-                    f1 = f1_score(np.argmax(y_dev, axis=1), predictions, labels=np.array(range(1, 19)), average="macro")
+                    f1 = f1_score(np.argmax(y_dev, axis=1), predictions, labels=np.array(range(1, len(class2label))), average="macro")
                     print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
                     print("[UNOFFICIAL] (2*9+1)-Way Macro-Average F1 Score (excluding Other): {:g}\n".format(f1))
 
