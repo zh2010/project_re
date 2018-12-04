@@ -46,11 +46,11 @@ def parse_args():
     # Training parameters
     parser.add_argument("--batch_size", default=20,
                         type=int, help="Batch Size (default: 20)")
-    parser.add_argument("--num_epochs", default=100,
+    parser.add_argument("--num_epochs", default=10000,
                         type=int, help="Number of training epochs (Default: 100)")
-    parser.add_argument("--display_every", default=10,
+    parser.add_argument("--display_every", default=100,
                         type=int, help="Number of iterations to display training information")
-    parser.add_argument("--evaluate_every", default=100,
+    parser.add_argument("--evaluate_every", default=1000,
                         type=int, help="Evaluate model on dev set after this many steps (default: 100)")
     parser.add_argument("--num_checkpoints", default=5,
                         type=int, help="Number of checkpoints to store (default: 5)")

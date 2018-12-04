@@ -194,19 +194,26 @@ def train():
                 # Evaluation
                 if step % FLAGS.evaluate_every == 0:
                     print("\nEvaluation:")
-                    feed_dict = {
-                        cnn.input_text: x_dev,
-                        cnn.input_p1: p1_dev,
-                        cnn.input_p2: p2_dev,
-                        cnn.input_y: y_dev,
-                        cnn.dropout_keep_prob: 1.0
-                    }
-                    summaries, loss, accuracy, predictions = sess.run(
-                        [dev_summary_op, cnn.loss, cnn.accuracy, cnn.predictions], feed_dict)
-                    dev_summary_writer.add_summary(summaries, step)
+                    batches_dev = data_helpers.batch_iter(list(zip(x_dev, p1_dev, p2_dev, y_dev)), 64, 1, shuffle=False)
+                    predictions_list = []
+                    for batch in batches_dev:
+                        x_dev_batch, p1_dev_batch, p2_dev_batch, y_dev_batch = zip(*batch)
+
+                        feed_dict = {
+                            cnn.input_text: x_dev_batch,
+                            cnn.input_p1: p1_dev_batch,
+                            cnn.input_p2: p2_dev_batch,
+                            cnn.input_y: y_dev_batch,
+                            cnn.dropout_keep_prob: 1.0
+                        }
+                        summaries, loss, accuracy, predictions = sess.run(
+                            [dev_summary_op, cnn.loss, cnn.accuracy, cnn.predictions], feed_dict)
+                        dev_summary_writer.add_summary(summaries, step)
+
+                        predictions_list.extend(predictions)
 
                     time_str = datetime.datetime.now().isoformat()
-                    f1 = f1_score(np.argmax(y_dev, axis=1), predictions, labels=np.array(range(1, len(class2label))), average="macro")
+                    f1 = f1_score(np.argmax(y_dev, axis=1), predictions_list, labels=np.array(range(1, len(class2label))), average="macro")
                     print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
                     print("[UNOFFICIAL] (2*9+1)-Way Macro-Average F1 Score (excluding Other): {:g}\n".format(f1))
 
