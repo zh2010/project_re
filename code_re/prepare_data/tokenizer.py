@@ -48,99 +48,98 @@ def build_word_dict():
 def cut_word():
     import jieba
     jieba.load_userdict(os.path.join(Data_PATH, "word_dict.txt"))
+    jieba.add_word('_e11_')
+    jieba.add_word('_e12_')
+    jieba.add_word('_e21_')
+    jieba.add_word('_e22_')
 
     for file_name in ['sample_negative.txt', 'sample_positive.txt']:
         with open(os.path.join(Data_PATH, file_name.replace('.txt', '_cut.txt')), 'w') as fout:
             with open(os.path.join(Data_PATH, file_name)) as f:
                 for line in f:
                     r_name, sent, fn, rid = line.rstrip().split('\t')
-                    e1_s = sent.index('<e1>')
-                    e1_e = sent.index('</e1>')
-                    e2_s = sent.index('<e2>')
-                    e2_e = sent.index('</e2>')
+                    if any(a in sent for a in ['_e11_', '_e12_', '_e21_', '_e22_']):
+                        print('contains new annotation !!!')
 
-                    sent_simp = sent.replace('<e1>', '').replace('</e1>', '').replace('<e2>', '').replace('</e2>', '')
+                    # if not (fn == '131_5' and rid == 'R21'):
+                    #     continue
+                    # e1_s = sent.index('<e1>')
+                    # e1_e = sent.index('</e1>')
+                    # e2_s = sent.index('<e2>')
+                    # e2_e = sent.index('</e2>')
+
+                    sent_simp = sent.replace('<e1>', '_e11_').replace('</e1>', '_e12_').replace('<e2>', '_e21_').replace('</e2>', '_e22_')
 
                     sent_cut = jieba.lcut(sent_simp, HMM=False)
-                    i = 0
-                    offset = []
-                    for w in sent_cut:
-                        offset.append([i, i+len(w), w])
-                        i += len(w)
+                    # i = 0
+                    # offset = []
+                    # for w in sent_cut:
+                    #     offset.append([i, i+len(w), w])
+                    #     i += len(w)
+                    #
+                    # if e1_s < e2_s:
+                    #
+                    #     for idx, (s_idx, e_idx, w) in enumerate(offset):
+                    #         if e1_s == 0:
+                    #             offset.insert(0, [e1_s, e1_s + 4, '<e1>'])
+                    #             offset = offset[:1] + [[si+4, ei+4, w] for si, ei, w in offset[1:]]
+                    #             break
+                    #
+                    #         if e_idx == e1_s:
+                    #             offset.insert(idx+1, [e1_s, e1_s + 4, '<e1>'])
+                    #             offset = offset[:idx+2] + [[si+4, ei+4, w] for si, ei, w in offset[idx+2:]]
+                    #             break
+                    #
+                    #     for idx, (s_idx, e_idx, w) in enumerate(offset):
+                    #         if e_idx == e1_e:
+                    #             offset.insert(idx+1, [e1_e, e1_e + 5, '</e1>'])
+                    #             offset = offset[:idx+2] + [[si+5, ei+5, w] for si, ei, w in offset[idx+2:]]
+                    #             break
+                    #
+                    #     for idx, (s_idx, e_idx, w) in enumerate(offset):
+                    #         if e_idx == e2_s:
+                    #             offset.insert(idx+1, [e2_s, e2_s + 4, '<e2>'])
+                    #             offset = offset[:idx+2] + [[si+4, ei+4, w] for si, ei, w in offset[idx+2:]]
+                    #             break
+                    #
+                    #     for idx, (s_idx, e_idx, w) in enumerate(offset):
+                    #         if e_idx == e2_e:
+                    #             offset.insert(idx+1, [e2_e, e2_e + 5, '</e2>'])
+                    #             offset = offset[:idx+2] + [[si+5, ei+5, w] for si, ei, w in offset[idx+2:]]
+                    #             break
+                    # else:
+                    #     for idx, (s_idx, e_idx, w) in enumerate(offset):
+                    #         if e2_s == 0:
+                    #             offset.insert(0, [e2_s, e2_s + 4, '<e2>'])
+                    #             offset = offset[:1] + [[si+4, ei+4, w] for si, ei, w in offset[1:]]
+                    #             break
+                    #
+                    #         if e_idx == e2_s:
+                    #             offset.insert(idx+1, [e2_s, e2_s + 4, '<e2>'])
+                    #             offset = offset[:idx+2] + [[si+4, ei+4, w] for si, ei, w in offset[idx+2:]]
+                    #             break
+                    #
+                    #     for idx, (s_idx, e_idx, w) in enumerate(offset):
+                    #         if e_idx == e2_e:
+                    #             offset.insert(idx+1, [e2_e, e2_e + 5, '</e2>'])
+                    #             offset = offset[:idx+2] + [[si+5, ei+5, w] for si, ei, w in offset[idx+2:]]
+                    #             break
+                    #
+                    #     for idx, (s_idx, e_idx, w) in enumerate(offset):
+                    #         if e_idx == e1_s:
+                    #             offset.insert(idx+1, [e1_s, e1_s + 4, '<e1>'])
+                    #             offset = offset[:idx+2] + [[si+4, ei+4, w] for si, ei, w in offset[idx+2:]]
+                    #             break
+                    #
+                    #     for idx, (s_idx, e_idx, w) in enumerate(offset):
+                    #         if e_idx == e1_e:
+                    #             offset.insert(idx+1, [e1_e, e1_e + 5, '</e1>'])
+                    #             offset = offset[:idx+2] + [[si+5, ei+5, w] for si, ei, w in offset[idx+2:]]
+                    #             break
 
-                    if e1_s < e2_s:
+                    # sent_cut_upt = [w for _, _, w in offset]
 
-                        for idx, (s_idx, e_idx, w) in enumerate(offset):
-                            if e1_s == 0:
-                                offset.insert(0, [e1_s, e1_s + 4, '<e1>'])
-                                offset = offset[:1] + [[si+4, ei+4, w] for si, ei, w in offset[1:]]
-                                break
-
-                            if e_idx == e1_s:
-                                offset.insert(idx+1, [e1_s, e1_s + 4, '<e1>'])
-                                offset = offset[:idx+2] + [[si+4, ei+4, w] for si, ei, w in offset[idx+2:]]
-                                break
-
-                        for idx, (s_idx, e_idx, w) in enumerate(offset):
-                            if e_idx == e1_e:
-                                offset.insert(idx+1, [e1_e, e1_e + 5, '</e1>'])
-                                offset = offset[:idx+2] + [[si+5, ei+5, w] for si, ei, w in offset[idx+2:]]
-                                break
-
-                        for idx, (s_idx, e_idx, w) in enumerate(offset):
-                            if e_idx == e2_s:
-                                offset.insert(idx+1, [e2_s, e2_s + 4, '<e2>'])
-                                offset = offset[:idx+2] + [[si+4, ei+4, w] for si, ei, w in offset[idx+2:]]
-                                break
-
-                        for idx, (s_idx, e_idx, w) in enumerate(offset):
-                            if e_idx == e2_e:
-                                offset.insert(idx+1, [e2_e, e2_e + 5, '</e2>'])
-                                offset = offset[:idx+2] + [[si+5, ei+5, w] for si, ei, w in offset[idx+2:]]
-                                break
-                    else:
-                        for idx, (s_idx, e_idx, w) in enumerate(offset):
-                            if e2_s == 0:
-                                offset.insert(0, [e2_s, e2_s + 4, '<e2>'])
-                                offset = offset[:1] + [[si+4, ei+4, w] for si, ei, w in offset[1:]]
-                                break
-
-                            if e_idx == e2_s:
-                                offset.insert(idx+1, [e2_s, e2_s + 4, '<e2>'])
-                                offset = offset[:idx+2] + [[si+4, ei+4, w] for si, ei, w in offset[idx+2:]]
-                                break
-
-                        for idx, (s_idx, e_idx, w) in enumerate(offset):
-                            if e_idx == e2_e:
-                                offset.insert(idx+1, [e2_e, e2_e + 5, '</e2>'])
-                                offset = offset[:idx+2] + [[si+5, ei+5, w] for si, ei, w in offset[idx+2:]]
-                                break
-
-                        for idx, (s_idx, e_idx, w) in enumerate(offset):
-                            if e_idx == e1_s:
-                                offset.insert(idx+1, [e1_s, e1_s + 4, '<e1>'])
-                                offset = offset[:idx+2] + [[si+4, ei+4, w] for si, ei, w in offset[idx+2:]]
-                                break
-
-                        for idx, (s_idx, e_idx, w) in enumerate(offset):
-                            if e_idx == e1_e:
-                                offset.insert(idx+1, [e1_e, e1_e + 5, '</e1>'])
-                                offset = offset[:idx+2] + [[si+5, ei+5, w] for si, ei, w in offset[idx+2:]]
-                                break
-
-                    sent_cut_upt = [w for _, _, w in offset]
-                    fout.write('{}\t{}\t{}\t{}\n'.format(r_name, ' '.join(sent_cut_upt), fn, rid))
-
-
-
-
-
-
-
-
-
-def cut_char():
-    pass
+                    fout.write('{}\t{}\t{}\t{}\n'.format(r_name, ' '.join(sent_cut), fn, rid))
 
 
 if __name__ == '__main__':
