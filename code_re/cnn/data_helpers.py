@@ -2,7 +2,6 @@ import os
 
 import numpy as np
 import pandas as pd
-import nltk
 import re
 from code_re.cnn import utils
 from code_re.cnn.configure import FLAGS

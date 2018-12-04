@@ -187,7 +187,10 @@ def prepare_tst():
 
                 matched_set.add(e1_id + '_' + e2_id)
 
-        with open(os.path.join(Data_PATH, 'tmp', file_name.replace('txt', 'sample')), 'w') as f:
+        if not os.path.exists(os.path.join(Data_PATH, 'test_b_processed_data')):
+            os.makedirs(os.path.join(Data_PATH, 'test_b_processed_data'))
+
+        with open(os.path.join(Data_PATH, 'test_b_processed_data', file_name.replace('txt', 'sample')), 'w') as f:
             for data in data_list:
                 f.write('\t'.join(list(map(str, data))) + '\n')
 

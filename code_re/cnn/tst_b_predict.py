@@ -7,7 +7,7 @@ import subprocess
 from code_re.cnn import data_helpers
 from code_re.cnn import utils
 from code_re.cnn.configure import FLAGS
-from code_re.config import Data_PATH
+from code_re.config import Data_PATH, test_b_data_path
 
 
 def evaluation():
@@ -47,9 +47,9 @@ def evaluation():
             predictions = graph.get_operation_by_name("output/predictions").outputs[0]
 
             # Generate batches for one epoch
-            for file_name in os.listdir(os.path.join(Data_PATH, 'tmp')):
+            for file_name in os.listdir(os.path.join(Data_PATH, 'test_b_processed_data')):
                 pred_list = []
-                with open(os.path.join(Data_PATH, 'tmp', file_name)) as f:
+                with open(os.path.join(Data_PATH, 'test_b_processed_data', file_name)) as f:
                     for line in f:
                         sent_cut, e1, e2, pos1, pos2, e1_id, e2_id = line.strip().split('\t')
 
@@ -71,7 +71,13 @@ def evaluation():
                         pred_list.append([pred_label, e1_id, e2_id])
 
                 existed_pair = set()
+                if not os.path.exists(os.path.join(Data_PATH, 'submit')):
+                    os.makedirs(os.path.join(Data_PATH, 'submit'))
+
                 with open(os.path.join(Data_PATH, 'submit', file_name.replace('sample', 'ann')), 'w') as fout:
+                    with open(os.path.join(test_b_data_path, file_name.replace('sample', 'ann'))) as fann:
+                        for line in fann:
+                            fout.write(line)
                     for idx, (pred_label, e1_id, e2_id) in enumerate(pred_list):
                         if pred_label == 'other':
                             continue
