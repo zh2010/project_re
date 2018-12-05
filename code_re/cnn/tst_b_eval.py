@@ -24,6 +24,8 @@ def tst_eval():
 
     with open(os.path.join(Data_PATH, 'submit', '123_11.ann')) as f:
         for line in f:
+            if line.startswith('T'):
+                continue
             str_concat = line.strip().split('\t')[-1]
             pred_list.append(str_concat)
             # pred_label, e1_id, e2_id = str_concat.split(' ')
@@ -41,7 +43,7 @@ def tst_eval():
 
     precious = len(right_set) / len(pred_list)
     recall = len(right_set) / len(true_list)
-    f1 = precious * recall
+    f1 = precious * recall *2 /(precious + recall)
 
     print(precious, recall, f1)
 

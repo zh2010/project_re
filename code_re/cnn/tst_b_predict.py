@@ -77,6 +77,8 @@ def evaluation():
                 with open(os.path.join(Data_PATH, 'submit', file_name.replace('sample', 'ann')), 'w') as fout:
                     with open(os.path.join(test_b_data_path, file_name.replace('sample', 'ann'))) as fann:
                         for line in fann:
+                            if line.startswith('R'):
+                                continue
                             fout.write(line)
                     for idx, (pred_label, e1_id, e2_id) in enumerate(pred_list):
                         if pred_label == 'other':
