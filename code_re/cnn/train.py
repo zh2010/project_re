@@ -18,6 +18,7 @@ import warnings
 import sklearn.exceptions
 
 from code_re.cnn.utils import class2label
+from code_re.config import Data_PATH, train_data_path
 
 warnings.filterwarnings("ignore", category=sklearn.exceptions.UndefinedMetricWarning)
 np.random.seed(1234)
@@ -73,20 +74,28 @@ def train():
     # y_train, y_dev = y_shuffled[:dev_sample_index], y_shuffled[dev_sample_index:]
     # print("Train/Dev split: {:d}/{:d}\n".format(len(y_train), len(y_dev)))
 
-    train_indices = np.where(np.array(set_type) == 'Train')[0] 
-    dev_indices = np.where(np.array(set_type) == 'Valid')[0] 
-    
-    x_train = x[train_indices]
-    y_train = y[train_indices]
-    p1_train = p1[train_indices]
-    p2_train = p2[train_indices]
+    #####################################################################
+    # train_indices = np.where(np.array(set_type) == 'Train')[0]
+    # dev_indices = np.where(np.array(set_type) == 'Valid')[0]
+    #
+    # x_train = x[train_indices]
+    # y_train = y[train_indices]
+    # p1_train = p1[train_indices]
+    # p2_train = p2[train_indices]
+    #
+    # x_dev = x[dev_indices]
+    # y_dev = y[dev_indices]
+    # p1_dev = p1[dev_indices]
+    # p2_dev = p2[dev_indices]
+    #
+    # print("Train/Dev split: {:d}/{:d}\n".format(len(y_train), len(y_dev)))
+    #####################################################################
 
-    x_dev = x[dev_indices]
-    y_dev = y[dev_indices]
-    p1_dev = p1[dev_indices]
-    p2_dev = p2[dev_indices]
+    x_train = x
+    y_train = y
+    p1_train = p1
+    p2_train = p2
 
-    print("Train/Dev split: {:d}/{:d}\n".format(len(y_train), len(y_dev)))
 
     with tf.Graph().as_default():
         session_conf = tf.ConfigProto(
@@ -194,28 +203,73 @@ def train():
                 # Evaluation
                 if step % FLAGS.evaluate_every == 0:
                     print("\nEvaluation:")
-                    batches_dev = data_helpers.batch_iter(list(zip(x_dev, p1_dev, p2_dev, y_dev)), 64, 1, shuffle=False)
-                    predictions_list = []
-                    for batch in batches_dev:
-                        x_dev_batch, p1_dev_batch, p2_dev_batch, y_dev_batch = zip(*batch)
 
-                        feed_dict = {
-                            cnn.input_text: x_dev_batch,
-                            cnn.input_p1: p1_dev_batch,
-                            cnn.input_p2: p2_dev_batch,
-                            cnn.input_y: y_dev_batch,
-                            cnn.dropout_keep_prob: 1.0
-                        }
-                        summaries, loss, accuracy, predictions = sess.run(
-                            [dev_summary_op, cnn.loss, cnn.accuracy, cnn.predictions], feed_dict)
-                        dev_summary_writer.add_summary(summaries, step)
+                    for file_name in os.listdir(os.path.join(Data_PATH, 'test_b_processed_data')):
+                        pred_list = []
+                        true_list = []
+                        with open(os.path.join(train_data_path, file_name.replace('sample', 'ann'))) as f:
+                            for line in f:
+                                if line.startswith('T'):
+                                    continue
+                                true_list.append(line.strip().split('\t')[-1])
 
-                        predictions_list.extend(predictions)
+                        with open(os.path.join(Data_PATH, 'test_b_processed_data', file_name)) as f:
+                            for line in f:
+                                sent_cut, e1_dev, e2_dev, pos1_dev, pos2_dev, e1_id_dev, e2_id_dev = line.strip().split('\t')
 
-                    time_str = datetime.datetime.now().isoformat()
-                    f1 = f1_score(np.argmax(y_dev, axis=1), predictions_list, labels=np.array(range(1, len(class2label))), average="macro")
-                    print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
-                    print("[UNOFFICIAL] (2*9+1)-Way Macro-Average F1 Score (excluding Other): {:g}\n".format(f1))
+                                x_text_dev = [sent_cut]
+                                x_dev = np.array(list(text_vocab_processor.transform(x_text_dev)))
+
+                                pos1 = [pos1]
+                                pos2 = [pos2]
+                                p1_dev = np.array(list(pos_vocab_processor.transform(pos1_dev)))
+                                p2_dev = np.array(list(pos_vocab_processor.transform(pos2_dev)))
+
+                                feed_dict_dev = {cnn.input_text: x_dev,
+                                                 cnn.input_p1: p1_dev,
+                                                 cnn.input_p2: p2_dev,
+                                                 cnn.dropout_keep_prob: 1.0}
+
+                                summaries, loss, accuracy, preds = sess.run(
+                                    [dev_summary_op, cnn.loss, cnn.accuracy, cnn.predictions], feed_dict_dev)
+                                dev_summary_writer.add_summary(summaries, step)
+
+                                pred_label = utils.label2class[preds[0]]
+                                pred_list.append('{} Arg1:{} Arg2: {}'.format(pred_label, e1_id_dev, e2_id_dev))
+
+                        right_set = set(true_list).intersection(set(pred_list))
+                        print('right_set size: {}'.format(len(right_set)))
+                        print('true_list size: {}'.format(len(true_list)))
+                        print('pred_list size: {}'.format(len(pred_list)))
+
+                        precious = len(right_set) / len(pred_list)
+                        recall = len(right_set) / len(true_list)
+                        f1 = precious * recall * 2 / (precious + recall)
+
+                        print(precious, recall, f1)
+
+                    # batches_dev = data_helpers.batch_iter(list(zip(x_dev, p1_dev, p2_dev, y_dev)), 64, 1, shuffle=False)
+                    # predictions_list = []
+                    # for batch in batches_dev:
+                    #     x_dev_batch, p1_dev_batch, p2_dev_batch, y_dev_batch = zip(*batch)
+                    #
+                    #     feed_dict = {
+                    #         cnn.input_text: x_dev_batch,
+                    #         cnn.input_p1: p1_dev_batch,
+                    #         cnn.input_p2: p2_dev_batch,
+                    #         cnn.input_y: y_dev_batch,
+                    #         cnn.dropout_keep_prob: 1.0
+                    #     }
+                    #     summaries, loss, accuracy, predictions = sess.run(
+                    #         [dev_summary_op, cnn.loss, cnn.accuracy, cnn.predictions], feed_dict)
+                    #     dev_summary_writer.add_summary(summaries, step)
+                    #
+                    #     predictions_list.extend(predictions)
+                    #
+                    # time_str = datetime.datetime.now().isoformat()
+                    # f1 = f1_score(np.argmax(y_dev, axis=1), predictions_list, labels=np.array(range(1, len(class2label))), average="macro")
+                    # print("{}: step {}, loss {:g}, acc {:g}".format(time_str, step, loss, accuracy))
+                    # print("[UNOFFICIAL] (2*9+1)-Way Macro-Average F1 Score (excluding Other): {:g}\n".format(f1))
 
                     # Model checkpoint
                     if best_f1 < f1:

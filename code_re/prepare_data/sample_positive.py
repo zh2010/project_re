@@ -11,8 +11,11 @@ def find_entity(path):
     for file_name in os.listdir(path):
         if file_name.endswith('ann'):
             continue
-        if file_name != '131_5.txt':
-            continue
+
+        ######################################
+        # if file_name != '131_5.txt':
+        #     continue
+        ######################################
 
         with open(os.path.join(path, file_name)) as ftxt:
             lines = "".join([line for line in ftxt])
@@ -36,8 +39,10 @@ def find_entity(path):
                 rid, r = line.rstrip().split('\t')
                 r_name, arg1, arg2 = r.split(' ')
 
-                if rid == 'R21':
-                    print('tst')
+                #####################################################################
+                # if rid == 'R21':
+                #     print('tst')
+                #####################################################################
 
                 if not entity_dict.get(arg1.split(":")[-1]) or not entity_dict.get(arg2.split(":")[-1]):
                     print('relation contains entity which not exists !!!')
@@ -137,12 +142,12 @@ def find_entity(path):
 
                 sample.append((r_name, sub_sent_ent, file_name.split(".")[0], rid))
 
-    # with open(os.path.join(Data_PATH, "sample_positive.txt"), "w") as fout:
-    #     for r_name, sent, fid, rid in sample:
-    #         if "\t" in sent:
-    #             print("*" * 100)
-    #             print("sent contains Tab !")
-    #         fout.write("{}\t{}\t{}\t{}\n".format(r_name, sent, fid, rid))
+    with open(os.path.join(Data_PATH, "sample_positive.txt"), "w") as fout:
+        for r_name, sent, fid, rid in sample:
+            if "\t" in sent:
+                print("*" * 100)
+                print("sent contains Tab !")
+            fout.write("{}\t{}\t{}\t{}\n".format(r_name, sent, fid, rid))
 
 
 if __name__ == '__main__':

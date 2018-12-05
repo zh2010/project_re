@@ -18,7 +18,7 @@ def split_train_dev():
     with open(os.path.join(Data_PATH, 'sample_negative_cut.txt')) as f:
         negative_list = [line.strip().split('\t') for line in f]
     print('total negative samples size: {}'.format(len(negative_list)))
-    negative_list = random.sample(negative_list, 40000)
+    negative_list = random.sample(negative_list, 20000)
 
     with open(os.path.join(Data_PATH, 'sample_positive_cut.txt')) as f:
         positive_list = [line.strip().split('\t') for line in f]

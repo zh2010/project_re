@@ -34,8 +34,6 @@ def tst_eval():
             #
             # eda_list.append()
 
-
-
     right_set = set(true_list).intersection(set(pred_list))
     print('right_set size: {}'.format(len(right_set)))
     print('true_list size: {}'.format(len(true_list)))
