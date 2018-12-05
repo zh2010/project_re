@@ -205,6 +205,8 @@ def train():
                     print("\nEvaluation:")
 
                     for file_name in os.listdir(os.path.join(Data_PATH, 'test_b_processed_data')):
+                        if not file_name.endswith('sample'):
+                            continue
                         pred_list = []
                         true_list = []
                         with open(os.path.join(train_data_path, file_name.replace('sample', 'ann'))) as f:
@@ -220,8 +222,8 @@ def train():
                                 x_text_dev = [sent_cut]
                                 x_dev = np.array(list(text_vocab_processor.transform(x_text_dev)))
 
-                                pos1 = [pos1]
-                                pos2 = [pos2]
+                                pos1_dev = [pos1_dev]
+                                pos2_dev = [pos2_dev]
                                 p1_dev = np.array(list(pos_vocab_processor.transform(pos1_dev)))
                                 p2_dev = np.array(list(pos_vocab_processor.transform(pos2_dev)))
 
@@ -230,12 +232,11 @@ def train():
                                                  cnn.input_p2: p2_dev,
                                                  cnn.dropout_keep_prob: 1.0}
 
-                                summaries, loss, accuracy, preds = sess.run(
-                                    [dev_summary_op, cnn.loss, cnn.accuracy, cnn.predictions], feed_dict_dev)
-                                dev_summary_writer.add_summary(summaries, step)
-
+                                preds = sess.run(cnn.predictions, feed_dict_dev)
                                 pred_label = utils.label2class[preds[0]]
-                                pred_list.append('{} Arg1:{} Arg2: {}'.format(pred_label, e1_id_dev, e2_id_dev))
+                                if pred_label == 'other':
+                                    continue
+                                pred_list.append('{} Arg1:{} Arg2:{}'.format(pred_label, e1_id_dev, e2_id_dev))
 
                         right_set = set(true_list).intersection(set(pred_list))
                         print('right_set size: {}'.format(len(right_set)))
@@ -244,7 +245,7 @@ def train():
 
                         precious = len(right_set) / len(pred_list)
                         recall = len(right_set) / len(true_list)
-                        f1 = precious * recall * 2 / (precious + recall)
+                        f1 = precious * recall * 2 / (precious + recall + 1)
 
                         print(precious, recall, f1)
 
