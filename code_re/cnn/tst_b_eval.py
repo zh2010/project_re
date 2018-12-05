@@ -26,11 +26,11 @@ def tst_eval():
         for line in f:
             str_concat = line.strip().split('\t')[-1]
             pred_list.append(str_concat)
-            pred_label, e1_id, e2_id = str_concat.split(' ')
-            e1_id = e1_id.split(':')[-1]
-            e2_id = e2_id.split(':')[-1]
-
-            eda_list.append()
+            # pred_label, e1_id, e2_id = str_concat.split(' ')
+            # e1_id = e1_id.split(':')[-1]
+            # e2_id = e2_id.split(':')[-1]
+            #
+            # eda_list.append()
 
 
 

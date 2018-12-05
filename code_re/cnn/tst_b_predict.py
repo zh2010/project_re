@@ -12,7 +12,7 @@ from code_re.config import Data_PATH, test_b_data_path
 
 def evaluation():
 
-    checkpoint_dir = 'runs/1543905501/checkpoints'
+    checkpoint_dir = 'runs/1543944404/checkpoints'
     
     # Map data into vocabulary
     text_path = os.path.join(checkpoint_dir, "..", "text_vocab")
