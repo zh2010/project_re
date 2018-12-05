@@ -1,5 +1,6 @@
 import random
 
+import gensim
 import tensorflow as tf
 import numpy as np
 import os
@@ -96,7 +97,6 @@ def train():
     p1_train = p1
     p2_train = p2
 
-
     with tf.Graph().as_default():
         session_conf = tf.ConfigProto(
             allow_soft_placement=FLAGS.allow_soft_placement,
@@ -157,21 +157,19 @@ def train():
 
             # Pre-trained word2vec
             if FLAGS.embedding_path:
-                # cnt = 0
+                cnt = 0
                 # pretrain_W = np.random.randn(len(text_vocab_processor.vocabulary_), FLAGS.text_embedding_dim).astype(np.float32) / np.sqrt(len(text_vocab_processor.vocabulary_))
-                # with open(FLAGS.embedding_path) as f:
-                #     for line in tqdm(f):
-                #         ele_list = line.rstrip().split(' ')
-                #         word = ele_list[0]
-                #         embedding = list(map(float, ele_list[1:]))
-                #
-                #         idx = text_vocab_processor.vocabulary_.get(word)
-                #         if idx != 0:
-                #             cnt += 1
-                #             pretrain_W[idx] = np.array(embedding)
-                # print("in vocab cnt: {}".format(cnt))
+                pretrain_W = np.random.randn(len(text_vocab_processor.vocabulary_), FLAGS.text_embedding_dim).astype(np.float32)
 
-                pretrain_W = utils.load_word2vec(FLAGS.embedding_path, FLAGS.text_embedding_dim, text_vocab_processor)
+                wv_model = gensim.models.KeyedVectors.load(os.path.join(Data_PATH, 'w2v_1205'))
+                for w in wv_model.vocab:
+                    idx = text_vocab_processor.vocabulary_.get(w)
+                    if idx != 0:
+                        cnt += 1
+                        pretrain_W[idx] = wv_model.word_vec(w)
+                print("in vocab cnt: {}".format(cnt))
+
+                # pretrain_W = utils.load_word2vec(FLAGS.embedding_path, FLAGS.text_embedding_dim, text_vocab_processor)
                 print("pretrain_W size: {}".format(pretrain_W.shape))
                 sess.run(cnn.W_text.assign(pretrain_W))
                 print("Success to load pre-trained word2vec model!\n")

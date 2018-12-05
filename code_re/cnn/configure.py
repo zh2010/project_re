@@ -1,5 +1,8 @@
 import argparse
+import os
 import sys
+
+from code_re.config import Data_PATH
 
 
 def parse_args():
@@ -23,9 +26,10 @@ def parse_args():
     parser.add_argument("--embedding_path",
                         # default="glove.840B.300d.txt",
                         # default="GoogleNews-vectors-negative300.bin",
-                        default=None,
+                        default=os.path.join(Data_PATH, 'w2v_1205'),
+                        # default=None,
                         type=str, help="Path of pre-trained word embeddings (word2vec)")
-    parser.add_argument("--text_embedding_dim", default=300,
+    parser.add_argument("--text_embedding_dim", default=150,
                         type=int, help="Dimensionality of word embedding (default: 300)")
     parser.add_argument("--pos_embedding_dim", default=50,
                         type=int, help="Dimensionality of relative position embedding (default: 50)")
