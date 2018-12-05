@@ -52,6 +52,9 @@ def cut_word():
     jieba.add_word('_e12_')
     jieba.add_word('_e21_')
     jieba.add_word('_e22_')
+    for en_word in ['disease','reason','symptom','test','test_value','drug','frequency','amount','method','treatment',
+                    'operation','sideeff','anatomy','level','duration']:
+        jieba.add_word(en_word)
 
     for file_name in ['sample_negative.txt', 'sample_positive.txt']:
         with open(os.path.join(Data_PATH, file_name.replace('.txt', '_cut.txt')), 'w') as fout:

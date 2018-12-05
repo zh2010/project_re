@@ -204,6 +204,7 @@ def train():
                 if step % FLAGS.evaluate_every == 0:
                     print("\nEvaluation:")
 
+                    f1_list = []
                     for file_name in os.listdir(os.path.join(Data_PATH, 'test_b_processed_data')):
                         if not file_name.endswith('sample'):
                             continue
@@ -236,16 +237,17 @@ def train():
                                 pred_label = utils.label2class[preds[0]]
                                 if pred_label == 'other':
                                     continue
-                                pred_list.append('{} Arg1:{} Arg2:{}'.format(pred_label, e1_id_dev, e2_id_dev))
+                                pred_list.append('{} Arg1:{} Arg2:{}'.format(pred_label.split('(')[0], e1_id_dev, e2_id_dev))
 
                         right_set = set(true_list).intersection(set(pred_list))
-                        print('right_set size: {}'.format(len(right_set)))
-                        print('true_list size: {}'.format(len(true_list)))
-                        print('pred_list size: {}'.format(len(pred_list)))
+                        print('{} right_set size: {}'.format(file_name.split(':')[0], len(right_set)))
+                        print('      true_list size: {}'.format(len(true_list)))
+                        print('      pred_list size: {}'.format(len(pred_list)))
 
                         precious = len(right_set) / len(pred_list)
                         recall = len(right_set) / len(true_list)
-                        f1 = precious * recall * 2 / (precious + recall + 1)
+                        f1 = precious * recall * 2 / (precious + recall)
+                        f1_list.append(f1)
 
                         print(precious, recall, f1)
 
@@ -273,8 +275,9 @@ def train():
                     # print("[UNOFFICIAL] (2*9+1)-Way Macro-Average F1 Score (excluding Other): {:g}\n".format(f1))
 
                     # Model checkpoint
-                    if best_f1 < f1:
-                        best_f1 = f1
+                    f1_avg = np.mean(f1_list)
+                    if best_f1 < f1_avg:
+                        best_f1 = f1_avg
                         path = saver.save(sess, checkpoint_prefix + "-{:.3g}".format(best_f1), global_step=step)
                         print("Saved model checkpoint to {}\n".format(path))
 

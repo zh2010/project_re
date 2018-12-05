@@ -83,7 +83,7 @@ def evaluation():
                     for idx, (pred_label, e1_id, e2_id) in enumerate(pred_list):
                         if pred_label == 'other':
                             continue
-                        fout.write('R{}\t{} Arg1:{} Arg2:{}\n'.format(str(idx), pred_label, e1_id, e2_id))
+                        fout.write('R{}\t{} Arg1:{} Arg2:{}\n'.format(str(idx), pred_label.split('(')[0], e1_id, e2_id))
                         existed_pair.add('{} {} {}'.format(pred_label, e1_id, e2_id))
 
 

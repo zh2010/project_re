@@ -144,15 +144,15 @@ def prepare_tst():
 
                 if e1_info['s_idx'] < e2_info['s_idx']:
                     sub_sent_ent = lines[sub_sent_s_idx:e1_info['s_idx']] + "_e11_" + \
-                                   lines[e1_info['s_idx']: e1_info['e_idx']] + '_e12_' + \
+                                   e1_info['e_name'].lower() + '_e12_' + \
                                    lines[e1_info['e_idx']: e2_info['s_idx']] + '_e21_' + \
-                                   lines[e2_info['s_idx']: e2_info['e_idx']] + '_e22_' + \
+                                   e2_info['e_name'].lower() + '_e22_' + \
                                    lines[e2_info['e_idx']:sub_sent_e_idx]
                 else:
                     sub_sent_ent = lines[sub_sent_s_idx:e2_info['s_idx']] + "_e21_" + \
-                                   lines[e2_info['s_idx']: e2_info['e_idx']] + '_e22_' + \
+                                   e2_info['e_name'].lower() + '_e22_' + \
                                    lines[e2_info['e_idx']: e1_info['s_idx']] + '_e11_' + \
-                                   lines[e1_info['s_idx']: e1_info['e_idx']] + '_e12_' + \
+                                   e1_info['e_name'].lower() + '_e12_' + \
                                    lines[e1_info['e_idx']:sub_sent_e_idx]
 
                 sub_sent_ent = re.sub('[\n\s]', '', sub_sent_ent)

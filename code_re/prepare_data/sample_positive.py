@@ -126,21 +126,30 @@ def find_entity(path):
                 sub_sent_e_idx = j+1
 
                 if e1_info['s_idx'] < e2_info['s_idx']:
+                    # sub_sent_ent = lines[sub_sent_s_idx:e1_info['s_idx']] + "<e1>" + \
+                    #                lines[e1_info['s_idx']: e1_info['e_idx']] + '</e1>' + \
+                    #                lines[e1_info['e_idx']: e2_info['s_idx']] + '<e2>' + \
+                    #                lines[e2_info['s_idx']: e2_info['e_idx']] + '</e2>' + \
+                    #                lines[e2_info['e_idx']:sub_sent_e_idx]
+
                     sub_sent_ent = lines[sub_sent_s_idx:e1_info['s_idx']] + "<e1>" + \
-                                   lines[e1_info['s_idx']: e1_info['e_idx']] + '</e1>' + \
+                                   e1_info['e_name'].lower() + '</e1>' + \
                                    lines[e1_info['e_idx']: e2_info['s_idx']] + '<e2>' + \
-                                   lines[e2_info['s_idx']: e2_info['e_idx']] + '</e2>' + \
+                                   e2_info['e_name'].lower() + '</e2>' + \
                                    lines[e2_info['e_idx']:sub_sent_e_idx]
+
+                    sub_sent_ent = re.sub('[\n\s]', '', sub_sent_ent)
+                    sample.append((r_name + '(e1,e2)', sub_sent_ent, file_name.split(".")[0], rid))
+
                 else:
                     sub_sent_ent = lines[sub_sent_s_idx:e2_info['s_idx']] + "<e2>" + \
-                                   lines[e2_info['s_idx']: e2_info['e_idx']] + '</e2>' + \
+                                   e2_info['e_name'].lower() + '</e2>' + \
                                    lines[e2_info['e_idx']: e1_info['s_idx']] + '<e1>' + \
-                                   lines[e1_info['s_idx']: e1_info['e_idx']] + '</e1>' + \
+                                   e1_info['e_name'].lower() + '</e1>' + \
                                    lines[e1_info['e_idx']:sub_sent_e_idx]
 
-                sub_sent_ent = re.sub('[\n\s]', '', sub_sent_ent)
-
-                sample.append((r_name, sub_sent_ent, file_name.split(".")[0], rid))
+                    sub_sent_ent = re.sub('[\n\s]', '', sub_sent_ent)
+                    sample.append((r_name + '(e2,e1)', sub_sent_ent, file_name.split(".")[0], rid))
 
     with open(os.path.join(Data_PATH, "sample_positive.txt"), "w") as fout:
         for r_name, sent, fid, rid in sample:

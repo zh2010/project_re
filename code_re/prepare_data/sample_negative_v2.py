@@ -151,19 +151,21 @@ def find_entity(path):
 
                 if e1_info['s_idx'] < e2_info['s_idx']:
                     sub_sent_ent = lines[sub_sent_s_idx:e1_info['s_idx']] + "<e1>" + \
-                                   lines[e1_info['s_idx']: e1_info['e_idx']] + '</e1>' + \
+                                   e1_info['e_name'].lower() + '</e1>' + \
                                    lines[e1_info['e_idx']: e2_info['s_idx']] + '<e2>' + \
-                                   lines[e2_info['s_idx']: e2_info['e_idx']] + '</e2>' + \
+                                   e2_info['e_name'].lower() + '</e2>' + \
                                    lines[e2_info['e_idx']:sub_sent_e_idx]
+                    sub_sent_ent = re.sub('[\n\s]', '', sub_sent_ent)
+                    sample.append(('other', sub_sent_ent, file_name.split(".")[0], e1_info['e_name'] + '_' + e2_info['e_name']))
+
                 else:
                     sub_sent_ent = lines[sub_sent_s_idx:e2_info['s_idx']] + "<e2>" + \
-                                   lines[e2_info['s_idx']: e2_info['e_idx']] + '</e2>' + \
+                                   e2_info['e_name'].lower() + '</e2>' + \
                                    lines[e2_info['e_idx']: e1_info['s_idx']] + '<e1>' + \
-                                   lines[e1_info['s_idx']: e1_info['e_idx']] + '</e1>' + \
+                                   e1_info['e_name'].lower() + '</e1>' + \
                                    lines[e1_info['e_idx']:sub_sent_e_idx]
-                sub_sent_ent = re.sub('[\n\s]', '', sub_sent_ent)
-
-                sample.append(('other', sub_sent_ent, file_name.split(".")[0], 'R-other'))
+                    sub_sent_ent = re.sub('[\n\s]', '', sub_sent_ent)
+                    sample.append(('other', sub_sent_ent, file_name.split(".")[0], e2_info['e_name'] + '_' + e1_info['e_name']))
 
                 matched_set.add(e1_id + "_" + e2_id)
                 matched_set.add(e2_id + "_" + e1_id)
